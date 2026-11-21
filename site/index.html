@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Maker — turn any link into a QR code, and any number into a WhatsApp link</title>
+<meta name="description" content="Make a QR code for any link or text, download it as a PNG, and turn a phone number + message into a wa.me WhatsApp link. Free, in your browser, nothing uploaded.">
+<meta property="og:title" content="QR Maker — links to QR codes, numbers to WhatsApp links">
+<meta property="og:description" content="Paste a link, get a QR code. Type a number and a message, get a wa.me link. Free, in your browser, nothing uploaded.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root { --bg:#0d1a12; --card:#152619; --line:#2c4636; --text:#f0f7f1; --muted:#a9bfae; --green:#25d366; --green-dk:#128c4a; --soft:#7ee2a8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width: 700px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font-size: 34px; margin: 6px 0 2px; letter-spacing: .2px; }
+  .tag { color: var(--muted); margin: 0 0 22px; line-height: 1.55; }
+  .hero-img { width: 100%; border-radius: 16px; border: 1px solid var(--line); margin: 4px 0 20px; display: block; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-top: 20px; }
+  .card h2 { font-size: 19px; margin: 0 0 6px; }
+  .card p.hint { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0 0 12px; }
+  label { display:block; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  input[type=text], input[type=tel], textarea { width:100%; background:#0b140e; color:var(--text); border:1px solid var(--line); border-radius:12px; padding: 13px 14px; font-size: 15px; font-family: inherit; }
+  input:focus, textarea:focus { outline: 2px solid var(--green); border-color: transparent; }
+  textarea { min-height: 74px; resize: vertical; }
+  button { background: var(--green); color:#062b16; border:0; border-radius: 10px; padding: 12px 18px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 600; }
+  button:disabled { opacity: .45; cursor: default; }
+  .row { display:flex; gap:10px; margin-top: 12px; flex-wrap: wrap; }
+  .chips { display:flex; gap:8px; flex-wrap: wrap; margin-top: 12px; }
+  .chips button { background: transparent; color: var(--soft); border: 1px solid var(--line); font-weight: 600; font-size: 13.5px; padding: 8px 12px; }
+  .qr-stage { background:#ffffff; border-radius: 16px; padding: 18px; margin-top: 14px; text-align: center; min-height: 200px; display:flex; align-items:center; justify-content:center; }
+  .qr-stage canvas { max-width: 100%; height: auto; display:block; margin: 0 auto; }
+  .qr-stage .empty { color:#5a6b60; font-size: 15px; line-height: 1.6; padding: 30px 10px; }
+  .qr-meta { color: var(--muted); font-size: 13.5px; margin-top: 10px; line-height: 1.5; }
+  .slider-row { display:flex; align-items:center; gap:12px; margin-top: 14px; }
+  .slider-row input[type=range] { flex:1; accent-color: var(--green); }
+  .slider-row span { font-size: 14px; color: var(--muted); white-space: nowrap; }
+  .wa-out { display:none; margin-top: 14px; background:#0b140e; border:1px solid var(--line); border-radius: 12px; padding: 13px 14px; word-break: break-all; font-size: 15px; line-height: 1.6; }
+  .wa-out a { color: var(--soft); }
+  .err { display:none; margin-top: 12px; color:#ffb4ab; font-size: 14.5px; line-height: 1.55; }
+  .phone-grid { display:flex; gap:10px; }
+  .phone-grid .cc { flex: 0 0 110px; }
+  .phone-grid .num { flex: 1; }
+  .foot { color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 30px; }
+  a { color: var(--soft); }
+</style>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d1a12">
+</head>
+<body>
+<div class="wrap">
+  <h1>QR Maker</h1>
+  <p class="tag">Turn any link or text into a QR code — and turn any phone number into a WhatsApp chat link. Free, in your browser, nothing uploaded anywhere.</p>
+  <img class="hero-img" src="banner.png" alt="QR Maker — a QR code and a WhatsApp chat link">
+
+  <div class="card" id="qrCard">
+    <h2>1 · Make a QR code</h2>
+    <p class="hint">Paste a link, a sentence, anything. The code updates as you type. Point a phone camera at it and it opens.</p>
+    <label for="qrText">Link or text</label>
+    <textarea id="qrText" placeholder="https://iambangees.github.io/agent-roll-call/">https://iambangees.github.io/agent-roll-call/</textarea>
+    <div class="chips" id="presets"></div>
+    <div class="qr-stage" id="qrStage"><div class="empty">Type something above and your QR code appears here.</div></div>
+    <p class="qr-meta" id="qrMeta"></p>
+    <p class="err" id="qrErr"></p>
+    <div class="slider-row">
+      <label for="qrSize" style="margin:0;">Size</label>
+      <input type="range" id="qrSize" min="256" max="1024" step="64" value="512">
+      <span id="qrSizeLabel">512 × 512 px</span>
+    </div>
+    <div class="row">
+      <button id="btnDownload">Download QR (PNG)</button>
+      <button class="ghost" id="btnCopyText">Copy the link / text</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2 · WhatsApp link maker</h2>
+    <p class="hint">Type a number and a message and get a wa.me link — tap it and WhatsApp opens straight into a chat with that person, message already written. Handy for shop numbers, flyers and your own contact details.</p>
+    <label for="waPhone">Phone number</label>
+    <div class="phone-grid">
+      <input type="text" class="cc" id="waCc" value="234" inputmode="numeric" aria-label="Country code">
+      <input type="tel" class="num" id="waPhone" placeholder="803 123 4567" inputmode="tel">
+    </div>
+    <label for="waMsg">Message (optional)</label>
+    <textarea id="waMsg" placeholder="Hi! I saw your post and I'd like to ask about…"></textarea>
+    <div class="row">
+      <button id="btnWa">Make my WhatsApp link</button>
+    </div>
+    <p class="err" id="waErr"></p>
+    <div class="wa-out" id="waOut"></div>
+    <div class="row" id="waActions" style="display:none;">
+      <button class="ghost" id="btnWaCopy">Copy link</button>
+      <button class="ghost" id="btnWaOpen">Open in WhatsApp</button>
+      <button id="btnWaQr">Make a QR of this link ↑</button>
+    </div>
+  </div>
+
+  <p class="foot">Everything on this page runs in your browser. The QR code is drawn on your device from the text you type — nothing is sent to a server, there is no account, and the page works offline once loaded. QR codes are black on white with a quiet zone on purpose: that is what phone cameras read most reliably, so the colours are fixed. A very long link still scans, but a short link scans faster — that is why the presets use short portfolio links.</p>
+</div>
+
+<footer class="bangees-more" style="margin-top:44px;background:#081226;color:#e8eefc;padding:22px 16px 26px;text-align:center;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"><div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8fb4ff;margin-bottom:9px;">More from Bangees</div><nav style="font-size:14.5px;line-height:2;"><a href="https://iambangees.github.io/agent-roll-call/" style="color:#cfe0ff;text-decoration:none;">Agent Roll Call</a> · <a href="https://iambangees.github.io/name-atlas/" style="color:#cfe0ff;text-decoration:none;">Name Atlas</a> · <a href="https://iambangees.github.io/naira-lens/" style="color:#cfe0ff;text-decoration:none;">Naira Lens</a> · <a href="https://iambangees.github.io/aeris/" style="color:#cfe0ff;text-decoration:none;">Aeris</a> · <a href="https://iambangees.github.io/memelab/" style="color:#cfe0ff;text-decoration:none;">MemeLab</a> · <a href="https://iambangees.github.io/vidgrab/" style="color:#cfe0ff;text-decoration:none;">VidGrab</a> · <a href="https://iambangees.github.io/pic-to-draw/" style="color:#cfe0ff;text-decoration:none;">PicToDraw</a> · <a href="https://iambangees.github.io/agent-cards/" style="color:#cfe0ff;text-decoration:none;">Agent Cards</a> · <a href="https://iambangees.github.io/claim-checker/" style="color:#cfe0ff;text-decoration:none;">Claim Checker</a> · <a href="https://iambangees.github.io/bet-diary/" style="color:#cfe0ff;text-decoration:none;">Bet Diary</a> · <a href="https://iambangees.github.io/qr-maker/" style="color:#cfe0ff;text-decoration:none;">QR Maker</a> · <a href="https://discaro.vercel.app" style="color:#cfe0ff;text-decoration:none;">Discaro</a></nav></footer>
+<script src="qrcode.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const PRESETS = [
+  ["Agent Roll Call", "https://iambangees.github.io/agent-roll-call/"],
+  ["Agent Cards", "https://iambangees.github.io/agent-cards/"],
+  ["Name Atlas", "https://iambangees.github.io/name-atlas/"],
+  ["Naira Lens", "https://iambangees.github.io/naira-lens/"],
+  ["Claim Checker", "https://iambangees.github.io/claim-checker/"],
+  ["Discaro", "https://discaro.vercel.app"]
+];
+PRESETS.forEach(([label, url]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = label;
+  b.onclick = () => { $("qrText").value = url; renderQR(); $("qrText").focus(); };
+  $("presets").appendChild(b);
+});
+
+let qrCanvas = null, lastText = "";
+function renderQR() {
+  const text = $("qrText").value.trim();
+  const stage = $("qrStage"), err = $("qrErr"), meta = $("qrMeta");
+  err.style.display = "none"; meta.textContent = "";
+  if (!text) {
+    stage.innerHTML = '<div class="empty">Type something above and your QR code appears here.</div>';
+    qrCanvas = null; lastText = ""; return;
+  }
+  if (typeof qrcode === "undefined") {
+    err.textContent = "The QR library did not load — check your connection and reload the page.";
+    err.style.display = "block"; return;
+  }
+  let qr;
+  try {
+    qr = qrcode(0, "M");
+    qr.addData(text);
+    qr.make();
+  } catch (e) {
+    stage.innerHTML = '<div class="empty">That text is too long for one QR code — shorten the link (a link shortener helps) and try again.</div>';
+    err.textContent = "Too much text for a single QR code.";
+    err.style.display = "block"; qrCanvas = null; return;
+  }
+  const size = parseInt($("qrSize").value, 10);
+  const count = qr.getModuleCount();
+  const quiet = 4, total = count + quiet * 2;
+  const cell = size / total;
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = "#000000";
+  for (let r = 0; r < count; r++) {
+    for (let c = 0; c < count; c++) {
+      if (qr.isDark(r, c)) ctx.fillRect(Math.round((c + quiet) * cell), Math.round((r + quiet) * cell), Math.ceil(cell), Math.ceil(cell));
+    }
+  }
+  stage.innerHTML = "";
+  stage.appendChild(canvas);
+  qrCanvas = canvas; lastText = text;
+  meta.textContent = text.length + " characters · " + count + "×" + count + " modules · scans with any phone camera.";
+}
+let debounce = null;
+$("qrText").addEventListener("input", () => { clearTimeout(debounce); debounce = setTimeout(renderQR, 150); });
+$("qrSize").addEventListener("input", () => {
+  $("qrSizeLabel").textContent = $("qrSize").value + " × " + $("qrSize").value + " px";
+  renderQR();
+});
+$("btnDownload").onclick = () => {
+  if (!qrCanvas) return;
+  qrCanvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "qr-code.png";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, "image/png");
+};
+$("btnCopyText").onclick = async () => {
+  const text = $("qrText").value.trim();
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); $("btnCopyText").textContent = "Copied ✓"; setTimeout(() => $("btnCopyText").textContent = "Copy the link / text", 1600); }
+  catch (e) { $("btnCopyText").textContent = "Copy failed — long-press to copy manually"; }
+};
+
+function normalisePhone(ccRaw, phoneRaw) {
+  const cc = ccRaw.replace(/\D/g, "");
+  let digits = phoneRaw.replace(/\D/g, "");
+  if (!digits) return { ok: false, error: "Type a phone number first." };
+  if (cc && digits.startsWith(cc)) { /* already international */ }
+  else if (digits.startsWith("0")) { digits = (cc || "234") + digits.slice(1); }
+  else if (cc) { digits = cc + digits; }
+  if (digits.length < 7 || digits.length > 15) return { ok: false, error: "That number looks too short or too long — check it and try again." };
+  return { ok: true, digits };
+}
+function buildWaLink(ccRaw, phoneRaw, msg) {
+  const n = normalisePhone(ccRaw, phoneRaw);
+  if (!n.ok) return n;
+  let link = "https://wa.me/" + n.digits;
+  if (msg.trim()) link += "?text=" + encodeURIComponent(msg.trim());
+  return { ok: true, link };
+}
+let lastWaLink = "";
+$("btnWa").onclick = () => {
+  const res = buildWaLink($("waCc").value, $("waPhone").value, $("waMsg").value);
+  const err = $("waErr"), out = $("waOut"), actions = $("waActions");
+  err.style.display = "none";
+  if (!res.ok) { err.textContent = res.error; err.style.display = "block"; out.style.display = "none"; actions.style.display = "none"; return; }
+  lastWaLink = res.link;
+  out.innerHTML = 'Your link: <a href="' + res.link + '" target="_blank" rel="noopener">' + res.link + "</a>";
+  out.style.display = "block"; actions.style.display = "flex";
+};
+$("btnWaCopy").onclick = async () => {
+  if (!lastWaLink) return;
+  try { await navigator.clipboard.writeText(lastWaLink); $("btnWaCopy").textContent = "Copied ✓"; setTimeout(() => $("btnWaCopy").textContent = "Copy link", 1600); }
+  catch (e) { $("btnWaCopy").textContent = "Copy failed — long-press the link to copy it"; }
+};
+$("btnWaOpen").onclick = () => { if (lastWaLink) window.open(lastWaLink, "_blank", "noopener"); };
+$("btnWaQr").onclick = () => {
+  if (!lastWaLink) return;
+  $("qrText").value = lastWaLink;
+  renderQR();
+  $("qrCard").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+renderQR();
+</script>
+<script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
+</body>
+</html>
